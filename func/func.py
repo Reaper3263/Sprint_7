@@ -2,6 +2,7 @@ import requests
 import random
 import string
 
+
 # метод регистрации нового курьера возвращает список из логина и пароля
 # если регистрация не удалась, возвращает пустой список
 def register_new_courier_and_return_login_password():
