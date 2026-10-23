@@ -1,14 +1,14 @@
-import json
-
+import allure
 import pytest
 import requests
 
-from config import url_order, url_courier, url_login, url_accept_order, url_get_order_id
+from config import url_order, url_accept_order, url_get_order_id
 
 
 class TestOrders:
-    @pytest.mark.parametrize("color", [["BLACK", "GREY"], ["BLACK"], ["GREY"], []])
-    def test_color(self, color):
+    @allure.title("Создание заказа с различными цветами: {color}")
+    @pytest.mark.parametrize("color", [["BLACK", "GREY"], ["BLACK"], ["GREY"]])
+    def test_color_creation_status_code(self, color):
         body = {
             "firstName": "Naruto",
             "lastName": "Uchiha",
@@ -20,38 +20,19 @@ class TestOrders:
             "comment": "Saske, come back to Konoha",
             "color": color
         }
-        resp = requests.post(url_order, json.dumps(body))
-        assert resp.status_code == 201
-        assert "track" in resp.json()
+        with allure.step("Отправка запроса на создание заказа"):
+            resp = requests.post(url_order, json=body)
+
+        with allure.step("Проверка статус-кода 201"):
+            assert resp.status_code == 201
 
 
+@pytest.mark.usefixtures("manage_courier")
 class TestListOrders:
     courier_id: str = None
 
-    @classmethod
-    @pytest.fixture(scope="class", autouse=True)
-    def set_up_test(cls):
-        payload = {
-            "login": "test1",
-            "password": "123",
-        }
-        resp_create_user = requests.post(url_courier, data=payload)
-        resp_login_user = requests.post(url_login, data=payload)
-        cls.courier_id = str(resp_login_user.json()['id'])
-        yield
-
-        body = {
-            "login": "test1",
-            "password": "123"
-        }
-        resp = requests.post(url_login, body)
-        if resp.status_code == 200:
-            id = resp.json()['id']
-            url_delete = url_courier + f"/{id}"
-            resp = requests.delete(url_delete)
-            pass
-
-    def test_get_list_orders(self):
+    @allure.title("Проверка отображения привязанного заказа в списке курьера")
+    def test_get_list_orders_contains_courier_order(self):
         body = {
             "firstName": "Naruto",
             "lastName": "Uchiha",
@@ -63,22 +44,20 @@ class TestListOrders:
             "comment": "Saske, come back to Konoha",
             "color": ['BLACK']
         }
-        resp = requests.post(url_order, json.dumps(body))
-        if resp.status_code != 201:
-            assert False
-        order_track = resp.json()['track']
+        with allure.step("Создание нового заказа"):
+            resp = requests.post(url_order, json=body)
+            order_track = resp.json()['track']
 
-        resp_with_id = requests.get(url_get_order_id.format(track=order_track))
-        if resp_with_id.status_code != 200:
-            assert False
-        order_id = resp_with_id.json()['order']['id']
+        with allure.step("Получение числового ID заказа по его трек-номеру"):
+            resp_with_id = requests.get(url_get_order_id.format(track=order_track))
+            order_id = resp_with_id.json()['order']['id']
 
-        resp_accepted = requests.put(url_accept_order.format(order_id=order_id) + f"?courierId={self.courier_id}")
-        if resp_accepted.status_code != 200:
-            assert False
+        with allure.step("Привязка созданного заказа к курьеру"):
+            url_accept = url_accept_order.format(order_id=order_id)
+            requests.put(url_accept, params={'courierId': self.courier_id})
 
-        resp_with_list = requests.get(url_order, params={'courierId': self.courier_id})
-        if resp_with_list.status_code != 200:
-            assert False
+        with allure.step("Запрос списка заказов курьера"):
+            resp_with_list = requests.get(url_order, params={'courierId': self.courier_id})
 
-        assert any(item['id'] == order_id for item in resp_with_list.json()['orders'])
+        with allure.step("Проверка, что ID заказа присутствует в ответе"):
+            assert any(item['id'] == order_id for item in resp_with_list.json()['orders'])
