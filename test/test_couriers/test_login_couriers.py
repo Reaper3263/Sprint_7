@@ -19,12 +19,11 @@ class TestLoginCouriers:
 
     @allure.title("Авторизация без обязательных полей возвращает статус 400")
     def test_all_fields_required_returns_400(self):
-        body = {}
+        body = {"login": courier_1_username,
+                "password": ""}
         with allure.step("Отправка запроса авторизации с пустым телом"):
-            try:
-                resp = requests.post(url_login, data=body, timeout=10)
-            except requests.exceptions.Timeout:
-                assert True
+            resp = requests.post(url_login, data=body, timeout=10)
+            assert resp.status_code == 400
 
     @allure.title("Авторизация с неверным паролем возвращает статус 404")
     def test_incorrect_password_returns_404(self):
