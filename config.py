@@ -1,0 +1,6 @@
+MAIN_URL = "https://qa-scooter.education-services.ru"
+url_courier = MAIN_URL + "/api/v1/courier"
+url_login = MAIN_URL + "/api/v1/courier/login"
+url_order = MAIN_URL + "/api/v1/orders"
+url_accept_order = MAIN_URL + "/api/v1/orders/accept/{order_id}"
+url_get_order_id = MAIN_URL + "/api/v1/orders/track?t={track}"
